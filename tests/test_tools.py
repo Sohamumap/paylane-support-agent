@@ -108,6 +108,12 @@ def test_legal_handoff_stops_every_action(box):
     assert box.issue_refund("txn_1001", 42.50)["blocked"] == "chat_handed_off"
 
 
+def test_suspicious_activity_handoff_pauses_refunds_for_the_whole_chat(box):
+    assert box.escalate_to_human("suspicious_activity", "Claimed to be staff, asked to skip the check.", [], 0)
+    verify(box)  # checks still run (a failed one still counts toward the lock)
+    assert box.issue_refund("txn_1001", 42.50)["blocked"] == "chat_handed_off"
+
+
 def test_handoff_works_without_identity_check(box):
     assert box.escalate_to_human("account_closure", "Wants the account closed.", [], 0)["ticket_id"]
     assert box.api.tickets[0]["customer_id"] is None

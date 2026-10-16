@@ -23,10 +23,12 @@ ESCALATION_REASONS = [
     "account_closure",
     "customer_asked_for_human",
     "refund_failed_or_missing",
+    "suspicious_activity",
     "other",
 ]
 # A handoff for one of these stops every action in the chat. Other handoffs hold only their own transactions.
-CHAT_WIDE_REASONS = {"card_frozen", "legal_action", "account_closure", "customer_asked_for_human"}
+CHAT_WIDE_REASONS = {"card_frozen", "legal_action", "account_closure", "customer_asked_for_human",
+                     "suspicious_activity"}
 
 TOOLS = [
     {
