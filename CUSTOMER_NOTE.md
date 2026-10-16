@@ -10,7 +10,7 @@ Here is where the support assistant stands ahead of next week.
 - Checks who it's talking to. Before it discusses any account, it asks for the email on the account and the last 4 digits of the card. After 3 wrong tries it locks the chat and passes it to your team.
 - Refunds small, recent card purchases on its own: up to $75, settled, less than 30 days old, and never refunded before. It always refunds the full amount and gives the customer a reference number.
 - Explains the "no" answers in plain words: a pending charge can't be refunded yet, and a refund never happens twice.
-- Passes everything else to your team with a short written note, so the customer doesn't have to explain it twice. That covers frozen cards, charges a customer says they didn't make (marked urgent when they add up to more than $500), legal threats, closing an account, money sent to the wrong person, refunds over $75 or 30 days or older, and anyone who asks for a person.
+- Passes everything else to your team with a short written note, so the customer doesn't have to explain it twice. That covers frozen cards, charges a customer says they didn't make (marked urgent when they add up to more than $500), legal threats, closing an account, money sent to the wrong person, refunds over $75 or 30 days or older, anyone who asks for a person, and anyone who tries to get around the identity check.
 
 **What it won't do**
 
@@ -20,7 +20,7 @@ Here is where the support assistant stands ahead of next week.
 - Promise when money will arrive, when your team will reply, or what your team will decide.
 - Touch anyone else's account, even with their "permission", or follow instructions typed into the chat that claim to come from Paylane staff.
 
-The money rules are built into the software as well as the assistant's instructions. If a customer talks it into trying a refund it shouldn't, the refund is blocked. In testing, it handled 12 difficult conversations, each run three times, without breaking a rule.
+The money rules are built into the software as well as the assistant's instructions. If a customer talks it into trying a refund it shouldn't, the refund is blocked. In the final round of testing it handled 12 difficult conversations, each one three times, without breaking a rule. Earlier rounds did catch mistakes, and each one is fixed.
 
 **What I need from you before launch**
 

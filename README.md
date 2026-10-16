@@ -29,7 +29,9 @@ Defaults: `claude-opus-5-5` at effort `medium`. Override with `--model` and `--e
 
 ## Results
 
-[[RESULTS]]
+Final run, Claude Opus 5.5 at medium effort, each conversation three times: **12/12 conversations passed every check in all three runs (252/252 checks)**. [Summary](transcripts/20261016-2016-final2/summary.md), with every transcript in the same folder.
+
+It took several rounds to get there. The first run scored 9/12, and a repeated run caught a failure that a single clean run had hidden. [REPORT.md](REPORT.md#results) has the history and every failure I found.
 
 ## Layout
 
