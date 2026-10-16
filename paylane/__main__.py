@@ -1,5 +1,6 @@
 """Command line.
 
+    python -m paylane web               chat in the browser at http://127.0.0.1:8765 (mock data)
     python -m paylane chat              talk to the agent in the terminal (mock data)
     python -m paylane eval              run the 12 scripted conversations and score them
     python -m paylane rescore <folder>  re-grade a saved run with the current checks (no API key needed)
@@ -70,13 +71,15 @@ def run_eval(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m paylane")
     sub = parser.add_subparsers(dest="command", required=True)
+    web = sub.add_parser("web", help="chat with the agent in your browser")
+    web.add_argument("--port", type=int, default=8765)
     chat = sub.add_parser("chat", help="talk to the agent in the terminal")
     evaluate = sub.add_parser("eval", help="run the scripted conversations and score them")
     evaluate.add_argument("--only", help="comma-separated conversation IDs, for example c03,c05")
     evaluate.add_argument("--repeat", type=int, default=1, help="run each conversation N times")
     evaluate.add_argument("--workers", type=int, default=4, help="conversations run in parallel")
     evaluate.add_argument("--label", default="run", help="suffix for the transcripts folder")
-    for p in (chat, evaluate):
+    for p in (web, chat, evaluate):
         p.add_argument("--model", help="default: claude-opus-5-5, or PAYLANE_MODEL")
         p.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"],
                        help="default: medium, or PAYLANE_EFFORT")
@@ -91,7 +94,10 @@ def main(argv=None):
     load_env_file()
     if not os.environ.get("ANTHROPIC_API_KEY"):
         sys.exit("ANTHROPIC_API_KEY is not set. Copy .env.example to .env and paste your key after the = sign.")
-    if args.command == "chat":
+    if args.command == "web":
+        from .web import serve
+        serve(port=args.port, model=args.model, effort=args.effort)
+    elif args.command == "chat":
         run_chat(args)
     else:
         run_eval(args)

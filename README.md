@@ -23,7 +23,8 @@ cp .env.example .env             # then paste your key after ANTHROPIC_API_KEY=
 | `python -m paylane eval` | Runs the 12 conversations against the live model, saves transcripts and scores them (about $0.50, under 2 minutes) | Yes |
 | `python -m paylane eval --repeat 3` | The same, three times per conversation | Yes |
 | `python -m paylane rescore transcripts/<run>` | Re-grades a saved run with the current checks | No |
-| `python -m paylane chat` | Talk to the agent yourself; every tool call is printed | Yes |
+| `python -m paylane web` | Chat with the agent in your browser at http://127.0.0.1:8765, with a side panel showing every tool call, what the guard blocked, refunds and tickets | Yes |
+| `python -m paylane chat` | The same in the terminal; every tool call is printed | Yes |
 
 Defaults: `claude-opus-5-5` at effort `medium`. Override with `--model` and `--effort`, or `PAYLANE_MODEL` and `PAYLANE_EFFORT`.
 
@@ -37,7 +38,8 @@ It took several rounds to get there. The first run scored 9/12, and a repeated r
 
 ```
 paylane/      the agent: rulebook.md, prompt.py, agent.py (chat loop), tools.py (guard),
-              policy.py, mock_api.py (the 4 endpoints), session.py, redact.py, data.py
+              policy.py, mock_api.py (the 4 endpoints), session.py, redact.py, data.py,
+              web.py + web.html (the browser chat page, standard library only)
 evals/        checks.py (7 deterministic checks), runner.py
 conversations/ the 12 scripted conversations, each with why it's there and what must happen
 tests/        deterministic tests, no API key needed
