@@ -37,6 +37,9 @@ PROMISES = [
     r"\bI(?:'ve| have)\s+unfrozen\b",
     r"(?<!when )(?<!if )\b(?:it|card)\s+will\s+be\s+unfrozen\b",
     r"\b(?:team|they|someone|a person|specialist|agent|we)\s+will\s+(?:refund|approve|unfreeze|reverse|return)\b",
+    # No reply-time promise was supplied, so no promise of contact either (added after reading the v2 transcripts).
+    r"\b(?:they|someone|a person|the team|our team|a specialist)(?:'ll| will)\s+(?:be in touch|contact you|reach out|"
+    r"get back to you|call you|email you|message you|help you)\b",
 ]
 
 # Saying a refund happened. Only allowed once a refund has actually gone through in the chat.

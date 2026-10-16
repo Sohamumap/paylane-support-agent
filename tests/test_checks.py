@@ -28,14 +28,16 @@ def test_flags_promises_the_policy_cant_back():
     for text in ["You'll see it in 3-5 business days.",
                  "Your card will be unfrozen tomorrow.",
                  "Someone will contact you shortly.",
-                 "The team will refund you once they review it."]:
+                 "The team will refund you once they review it.",
+                 "Your ticket is TCK-0001 and they'll be in touch with you."]:
         assert not no_false_promises(SPEC, record(text))["passed"], text
 
 
 def test_does_not_flag_plain_policy_explanations():
     for text in ["Refunds work for purchases under 30 days old, up to $75.",
                  "I can't say when it will be unfrozen.",
-                 "I can't tell you when a person will reply."]:
+                 "I can't tell you when a person will reply.",
+                 "I've passed it to our support team and a person will review it."]:
         assert no_false_promises(SPEC, record(text))["passed"], text
 
 
