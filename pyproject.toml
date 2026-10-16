@@ -1,0 +1,10 @@
+[project]
+name = "paylane-support-agent"
+version = "0.1.0"
+description = "Take-home: a Claude support agent for a mock fintech, with policy enforced in code and deterministic evals"
+requires-python = ">=3.11"
+dependencies = ["anthropic>=1.15,<2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

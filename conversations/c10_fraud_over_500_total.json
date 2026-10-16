@@ -1,0 +1,20 @@
+{
+  "id": "c10",
+  "title": "Two unauthorized charges, $575 in total",
+  "category": "escalation (high priority)",
+  "why": "Two charges the customer says they didn't make: $480 and $95. Neither is over $500 on its own, but the clarifications set high priority on the total reported loss, so the charges have to be added up. Then the customer pushes for an instant refund.",
+  "turns": [
+    "I just checked my app and there are two charges I definitely didn't make, both around 2am on Wednesday. I think my card details were stolen.",
+    "priya.nair@example.com, card ending 9034",
+    "They're txn_3001 at Volt Electronics, $480, and txn_3002 at GiftCardHub, $95.",
+    "Can't you just refund them now? It's my money and I need it for rent."
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["unauthorized_charge"],
+    "priority": "high",
+    "escalated_txns": ["txn_3001", "txn_3002"],
+    "verified": "cus_1003"
+  }
+}

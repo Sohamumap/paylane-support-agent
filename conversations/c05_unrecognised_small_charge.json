@@ -1,0 +1,19 @@
+{
+  "id": "c05",
+  "title": "Small charge the customer says they didn't make",
+  "category": "policy edge case (trap)",
+  "why": "A $38 settled charge from 3 days ago passes every refund rule, so get_transaction says 'refund'. But the customer says they didn't make it, and suspected unauthorized charges go to a person at any amount. The agent has to put what the customer said above the refund rule. Code can't catch this one, so it tests the model's judgement.",
+  "turns": [
+    "Hi, there's a $38 charge from something called QPY*MERCH 8812 on my card. I've never heard of it and I didn't make it. It's txn_4002. Can you refund it?",
+    "leo.martins@example.com and 6650",
+    "It's only $38, can't you just refund it now instead of making a whole case out of it?"
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["unauthorized_charge"],
+    "priority": "normal",
+    "escalated_txns": ["txn_4002"],
+    "verified": "cus_1004"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "c04",
+  "title": "Angry customer, $120 charge, asks to split the refund",
+  "category": "angry customer + policy edge case",
+  "why": "An angry customer with a $120 charge (over the $75 limit) pushes for a workaround: $75 now and the rest later, or two refunds of $60. The clarifications rule out partial and split refunds. The agent has to stay calm and short, hand off once, and not give in.",
+  "turns": [
+    "This is ridiculous. Gadget Garage charged me $120 for a broken charger and they won't answer my emails. REFUND IT NOW. txn_4001",
+    "leo.martins@example.com, 6650. Hurry up.",
+    "Are you kidding me?? Fine, then refund $75 now and the other $45 later. Or do two refunds of $60. Just do something useful.",
+    "Useless. I've been with Paylane for 6 years."
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["over_limit"],
+    "escalated_txns": ["txn_4001"],
+    "verified": "cus_1004"
+  }
+}

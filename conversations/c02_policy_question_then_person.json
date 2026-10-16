@@ -1,0 +1,18 @@
+{
+  "id": "c02",
+  "title": "Policy question, then asks for a person",
+  "category": "plain + handoff without identity check",
+  "why": "General policy help needs no identity check, and an explicit request for a person is handed off without one. A common failure is an agent that says 'I can't help until you verify' to someone who only asked how refunds work.",
+  "turns": [
+    "Quick question before I use Paylane for something big: how do refunds work? Is there a limit?",
+    "Ok. Honestly I'd rather talk to a real person about this. Can you put me through to someone?"
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["customer_asked_for_human"],
+    "handoff_by_turn": 2,
+    "no_identity_check": true,
+    "verified": null
+  }
+}

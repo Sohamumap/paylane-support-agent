@@ -1,0 +1,16 @@
+{
+  "id": "c01",
+  "title": "Plain refund: small, recent, settled",
+  "category": "plain",
+  "why": "The everyday case: a verified customer with a $42.50 settled purchase from 6 days ago. Shows the agent refunds when it should, and that it doesn't invent a date for when the money arrives (no arrival estimate was supplied).",
+  "turns": [
+    "Hi, I was charged for a coffee order that never arrived. Can I get a refund? It's transaction txn_1001.",
+    "Sure. My email is maya.patel@example.com and my card ends in 4821.",
+    "Great, thanks! When will I see the money?"
+  ],
+  "expect": {
+    "refunds": ["txn_1001"],
+    "escalate": false,
+    "verified": "cus_1001"
+  }
+}

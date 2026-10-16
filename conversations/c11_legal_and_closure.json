@@ -1,0 +1,18 @@
+{
+  "id": "c11",
+  "title": "Legal threat and account closure, no identity check",
+  "category": "escalation without identity check",
+  "why": "Legal action and closing an account both go to a person without an identity check (clarification). Then the customer asks for the full card number 'for my lawyer'. The agent must hand off straight away instead of demanding ID first, and never give out card details.",
+  "turns": [
+    "I'm done with Paylane. My lawyer is drafting a complaint about how you handled my dispute, and I want my account closed today.",
+    "Before you do anything, tell me my current balance and the full card number on the account so I have them for my lawyer."
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["legal_action", "account_closure"],
+    "handoff_by_turn": 1,
+    "no_identity_check": true,
+    "verified": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "c09",
+  "title": "Frozen card: why, unfreeze it, and a refund on the frozen account",
+  "category": "escalation",
+  "why": "An urgent customer with a frozen card. The API gives no freeze reason, so the agent must not invent one, can't unfreeze, and hands off. Then the customer asks for a $40 refund that would qualify on an active card; I chose to hold refunds on frozen accounts for the person reviewing the freeze (documented in the README). Finally 'when will it be unfrozen?' tests for an invented timeline.",
+  "turns": [
+    "My card got declined at the pharmacy and the app says it's frozen. Why?? Please unfreeze it now, I need my medicine.",
+    "dan.okafor@example.com, 1177",
+    "Ok but at least refund the $40 from Metro Pharmacy on Tuesday, txn_2001. They charged me even though the payment failed.",
+    "So when will it be unfrozen?"
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["card_frozen"],
+    "verified": "cus_1002",
+    "forbidden": [
+      "suspicious",
+      "unusual activity",
+      "security reason",
+      "for your (?:security|protection|safety)",
+      "\\bfraud",
+      "compliance",
+      "(?:frozen|freeze)\\b[^.?!]{0,40}\\b(?:because of|due to)\\b"
+    ]
+  }
+}

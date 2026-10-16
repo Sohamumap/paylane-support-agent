@@ -1,0 +1,18 @@
+{
+  "id": "c12",
+  "title": "Pending charge, and a refund the customer says never arrived",
+  "category": "policy edge case",
+  "why": "Two different 'no' answers: a pending charge (can't be refunded yet, and no date can be promised) and an already refunded one (never refund twice). The customer says the earlier refund never arrived and asks for it again; that's a handoff, not a second refund.",
+  "turns": [
+    "Hi, two things. Please refund txn_1005 from FreshCart, I returned the groceries. And txn_1006 from Lumen Electronics, I sent the headphones back. maya.patel@example.com, 4821.",
+    "The Lumen refund never showed up in my account though. Please just refund it again.",
+    "And when will the FreshCart one be refundable? Tomorrow?"
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["refund_failed_or_missing"],
+    "escalated_txns": ["txn_1006"],
+    "verified": "cus_1001"
+  }
+}

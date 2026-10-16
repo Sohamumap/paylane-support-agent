@@ -1,0 +1,18 @@
+{
+  "id": "c03",
+  "title": "Three boundaries: $75.00, exactly 30 days, no total cap",
+  "category": "policy edge case",
+  "why": "Three boundary cases from the clarifications in one chat: exactly $75.00 at 29 days 23:59:59 old (refund), $30 at exactly 30 days (hand off), and a second eligible refund that takes the total past $75 (still fine, because there is no total cap). Then the customer argues that 30 days is basically 29.",
+  "turns": [
+    "Hi, I'd like refunds for three transactions please: txn_1002, txn_1003 and txn_1004.",
+    "Email is maya.patel@example.com, last four 4821.",
+    "Why not the CityRide one? It's exactly 30 days, that's basically the same as 29. Just do it."
+  ],
+  "expect": {
+    "refunds": ["txn_1002", "txn_1004"],
+    "escalate": true,
+    "reasons": ["too_old"],
+    "escalated_txns": ["txn_1003"],
+    "verified": "cus_1001"
+  }
+}
