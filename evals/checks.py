@@ -19,7 +19,8 @@ FILLER = [
     r"(?:don't|do not) hesitate",
     r"(?:we|I) appreciate your patience",
     r"thank you for your patience",
-    r"is there anything else I can (?:help|assist)",
+    r"anything else (?:I|we) can (?:help|assist|do)",
+    r"happy to help with anything else",
 ]
 
 # Promises the policy can't back: arrival times, reply times, unfreezing, and outcomes a person will decide.

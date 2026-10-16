@@ -84,6 +84,20 @@ def run_suite(specs, *, repeat=1, workers=4, label="run", model=None, effort=Non
     return out, records, summary
 
 
+def rescore(run_dir) -> str:
+    """Re-run the checks on a saved run, using the current conversation files. No API calls, no cost."""
+    specs = {spec["id"]: spec for spec in load_conversations()}
+    records = []
+    for path in sorted(Path(run_dir).glob("c*.json")):
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if "error" not in record:
+            record["checks"] = run_checks(specs[record["id"]], record)
+            record["passed"] = all(c["passed"] for c in record["checks"])
+        records.append(record)
+    repeat = max((r.get("attempt", 1) for r in records), default=1)
+    return render_summary(records, repeat, elapsed=None)
+
+
 def estimate_cost(records) -> float:
     total = 0.0
     for record in records:
@@ -134,12 +148,13 @@ def render_summary(records, repeat, elapsed) -> str:
     checks = [c for r in records for c in r.get("checks", [])]
     first = next((r for r in records if "model" in r), {"model": "?", "effort": "?"})
     runs_note = f" in all {repeat} runs" if repeat > 1 else ""
+    timing = f" Wall time: {elapsed / 60:.1f} min." if elapsed is not None else " (Rescored from saved transcripts.)"
     lines = [
         f"# Eval run: {first['model']}, effort {first['effort']}",
         "",
         f"**Score: {clean}/{len(by_id)} conversations passed every check{runs_note}.**",
         f"Checks passed: {sum(c['passed'] for c in checks)}/{len(checks)}. "
-        f"Estimated API cost: ${estimate_cost(records):.2f}. Wall time: {elapsed / 60:.1f} min.",
+        f"Estimated API cost: ${estimate_cost(records):.2f}.{timing}",
         "",
         "| ID | Conversation | Category | Result | Failed checks |",
         "|---|---|---|---|---|",

@@ -281,6 +281,10 @@ class ToolBox:
             priority = policy.fraud_priority(loss)
             extra.append(f"Reported loss: ${loss}")
         txn_text = ", ".join(f"{t} (${amounts[t]})" if t in amounts else t for t in txn_ids) or "none given"
+        if s.refunded_txns:
+            # Facts from the system, so the note can't misstate what already happened in the chat.
+            done = ", ".join(f"{t} ({ref or 'confirmed after timeout'})" for t, ref in s.refunded_txns.items())
+            extra.append(f"Refunds already issued in this chat: {done}")
         body = "\n".join([f"Transactions: {txn_text}", *extra, f"Assistant's note: {summary}"])
 
         ticket = self._open_ticket(reason, s.customer_id, priority, txn_ids, body)

@@ -140,6 +140,13 @@ def test_the_same_issue_twice_reuses_the_ticket(box):
     assert len(box.api.tickets) == 1
 
 
+def test_tickets_state_refunds_already_issued_in_the_chat(box):
+    verify(box)
+    box.issue_refund("txn_1001", 42.50)
+    box.escalate_to_human("too_old", "Exactly 30 days old.", ["txn_1003"], 0)
+    assert "Refunds already issued in this chat: txn_1001 (rf_0001)" in box.api.tickets[0]["summary"]
+
+
 def test_card_numbers_never_reach_a_ticket(box):
     box.escalate_to_human("other", "Customer pasted 4111 1111 1111 1111 into the chat.", [], 0)
     assert "4111 1111" not in box.api.tickets[0]["summary"]

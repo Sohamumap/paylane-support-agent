@@ -1,7 +1,8 @@
 """Command line.
 
-    python -m paylane chat     talk to the agent in the terminal (mock data)
-    python -m paylane eval     run the 12 scripted conversations and score them
+    python -m paylane chat              talk to the agent in the terminal (mock data)
+    python -m paylane eval              run the 12 scripted conversations and score them
+    python -m paylane rescore <folder>  re-grade a saved run with the current checks (no API key needed)
 """
 
 import argparse
@@ -79,8 +80,14 @@ def main(argv=None):
         p.add_argument("--model", help="default: claude-opus-5-5, or PAYLANE_MODEL")
         p.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"],
                        help="default: medium, or PAYLANE_EFFORT")
+    rescore = sub.add_parser("rescore", help="re-grade a saved run with the current checks")
+    rescore.add_argument("folder", help="a run folder under transcripts/")
     args = parser.parse_args(argv)
 
+    if args.command == "rescore":
+        from evals.runner import rescore as rescore_run
+        print(rescore_run(args.folder))
+        return
     load_env_file()
     if not os.environ.get("ANTHROPIC_API_KEY"):
         sys.exit("ANTHROPIC_API_KEY is not set. Copy .env.example to .env and paste your key after the = sign.")
