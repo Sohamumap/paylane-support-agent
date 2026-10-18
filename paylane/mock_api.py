@@ -3,6 +3,9 @@
 JSON in, JSON out: every method takes plain values and returns a JSON-safe dict.
 This layer plays the bank. It knows the records but not the support policy:
 policy.py holds the rules, and tools.py enforces them before anything here runs.
+
+issue_refund here is idempotent per transaction: a second call for a refunded transaction returns
+already_refunded. That's a property of this mock only; no production idempotency contract was supplied.
 """
 
 import copy
@@ -16,12 +19,14 @@ class RefundTimeout(Exception):
 
 
 class MockPaylaneAPI:
-    def __init__(self, customers=None, transactions=None, *, refund_timeout=None):
+    def __init__(self, customers=None, transactions=None, *, refund_timeout=None, refund_error=None):
         # refund_timeout simulates a lost response: "after_apply" (the money moved) or "before_apply" (it didn't).
+        # refund_error simulates an explicit failure, e.g. "processor_declined".
         self._customers = copy.deepcopy(data.CUSTOMERS if customers is None else customers)
         source = data.TRANSACTIONS if transactions is None else transactions
         self._txns = {t["id"]: dict(t) for t in copy.deepcopy(source)}
         self._refund_timeout = refund_timeout
+        self._refund_error = refund_error
         self._refund_numbers = itertools.count(1)
         self._ticket_numbers = itertools.count(1)
         self.refunds = []  # money actually paid out
@@ -51,7 +56,7 @@ class MockPaylaneAPI:
         txn = self._txns.get(txn_id.strip())
         if txn is None or txn["customer_id"] != customer_id:
             return self._log("get_transaction", args, {"error": "not_found"})
-        result = {key: txn[key] for key in ("amount", "date", "merchant", "status", "type")}
+        result = {key: txn[key] for key in ("amount", "date", "merchant", "status")}  # exactly the spec's fields
         return self._log("get_transaction", args, result)
 
     def issue_refund(self, txn_id, amount):
@@ -65,6 +70,8 @@ class MockPaylaneAPI:
             return self._log("issue_refund", args, {"ok": False, "reason": "not_settled"})
         if not 0 < amount <= txn["amount"]:
             return self._log("issue_refund", args, {"ok": False, "reason": "invalid_amount"})
+        if self._refund_error:
+            return self._log("issue_refund", args, {"ok": False, "reason": self._refund_error})
         if self._refund_timeout == "before_apply":
             self._log("issue_refund", args, {"error": "timeout"})
             raise RefundTimeout(txn_id)

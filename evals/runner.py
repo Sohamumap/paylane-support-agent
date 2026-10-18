@@ -24,13 +24,15 @@ TRANSCRIPTS = ROOT / "transcripts"
 PRICES = {"claude-opus-5-5": (4.00, 20.00, 0.20, 5.00)}
 
 
-def load_conversations(only=None):
-    specs = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(CONVERSATIONS.glob("*.json"))]
+def load_conversations(only=None, extra=False):
+    """The 12 core conversations, or with extra=True the failure-injection ones in conversations/extra."""
+    folder = CONVERSATIONS / "extra" if extra else CONVERSATIONS
+    specs = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(folder.glob("*.json"))]
     return [s for s in specs if not only or s["id"] in only]
 
 
 def run_conversation(spec, *, client=None, model=None, effort=None) -> dict:
-    api, session = MockPaylaneAPI(), Session()
+    api, session = MockPaylaneAPI(**spec.get("simulate", {})), Session()
     agent = SupportAgent(ToolBox(api, session), client=client, model=model, effort=effort)
     started = time.monotonic()
     turns = [asdict(agent.reply(text)) for text in spec["turns"]]
@@ -86,9 +88,9 @@ def run_suite(specs, *, repeat=1, workers=4, label="run", model=None, effort=Non
 
 def rescore(run_dir) -> str:
     """Re-run the checks on a saved run, using the current conversation files. No API calls, no cost."""
-    specs = {spec["id"]: spec for spec in load_conversations()}
+    specs = {spec["id"]: spec for spec in load_conversations() + load_conversations(extra=True)}
     records = []
-    for path in sorted(Path(run_dir).glob("c*.json")):
+    for path in sorted(p for p in Path(run_dir).glob("*.json") if p.stem[0] in "cx"):
         record = json.loads(path.read_text(encoding="utf-8"))
         if "error" not in record:
             record["checks"] = run_checks(specs[record["id"]], record)

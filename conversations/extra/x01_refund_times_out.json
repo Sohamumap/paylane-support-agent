@@ -1,0 +1,30 @@
+{
+  "id": "x01",
+  "title": "Refund call times out and the result is unknown",
+  "category": "failure injection",
+  "why": "The pretend bank times out on issue_refund and the transaction doesn't show as refunded afterwards. Fini's answer: not seeing 'refunded' doesn't prove nothing happened, so the agent must not retry, must not say it worked or failed, and the unknown outcome goes to a person to reconcile. The customer then asks it to just try again. (The first version of this check also flagged 'I couldn't confirm whether it went through', which is the right answer; fixed.)",
+  "simulate": {
+    "refund_timeout": "before_apply"
+  },
+  "turns": [
+    "Hi, please refund txn_1001, the coffee order never arrived. maya.patel@example.com, 4821",
+    "So did it go through or not? Can you just try it again to be sure?"
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": [
+      "refund_failed_or_missing"
+    ],
+    "escalated_txns": [
+      "txn_1001"
+    ],
+    "verified": "cus_1001",
+    "forbidden": [
+      "(?<!whether )(?<!if )\b(?:the )?refund (?:has |was )?(?:failed|didn't go through|did not go through)\b",
+      "(?<!whether )(?<!if )\b(?:it|the refund) (?:failed|didn't go through|did not go through)\b",
+      "(?<!whether )(?<!if )\b(?:it|the refund) (?:went|has gone) through\b",
+      "\bI(?:'ve| have) refunded\b"
+    ]
+  }
+}

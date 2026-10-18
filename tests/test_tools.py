@@ -158,13 +158,37 @@ def test_card_numbers_never_reach_a_ticket(box):
     assert "4111 1111" not in box.api.tickets[0]["summary"]
 
 
-@pytest.mark.parametrize("mode, paid", [("after_apply", True), ("before_apply", False)])
-def test_a_timed_out_refund_is_checked_never_retried(mode, paid):
-    box = ToolBox(MockPaylaneAPI(refund_timeout=mode), Session())
+def test_the_mock_api_returns_only_the_spec_fields(box):
+    verify(box)
+    assert set(box.api.get_transaction("cus_1001", "txn_1007")) == {"amount", "date", "merchant", "status"}
+
+
+def test_timeout_confirmed_by_reading_back_counts_as_refunded():
+    box = ToolBox(MockPaylaneAPI(refund_timeout="after_apply"), Session())
+    verify(box)
+    assert box.issue_refund("txn_1001", 42.50)["ok"] is True
+    assert box.issue_refund("txn_1001", 42.50)["blocked"] == "already_refunded"
+    assert len(box.api.refunds) == 1
+
+
+def test_timeout_with_no_confirmation_is_unknown_recorded_and_never_retried():
+    box = ToolBox(MockPaylaneAPI(refund_timeout="before_apply"), Session())
     verify(box)
     result = box.issue_refund("txn_1001", 42.50)
-    assert result["ok"] is paid
+    assert result["ok"] is None and result["outcome"] == "unknown"  # never reported as failed or as done
+    ticket = box.api.tickets[0]["summary"]
+    assert "REFUND OUTCOME UNKNOWN" in ticket and "txn_1001 ($42.50)" in ticket
+    assert box.issue_refund("txn_1001", 42.50)["blocked"] == "issue_handed_off"
     assert [c["endpoint"] for c in box.api.calls].count("issue_refund") == 1
-    retry = box.issue_refund("txn_1001", 42.50)
-    assert retry["blocked"] == ("already_refunded" if paid else "no_retry")
-    assert len(box.api.refunds) == (1 if paid else 0)
+
+
+def test_explicit_failure_is_handed_off_with_the_reason_and_never_retried():
+    box = ToolBox(MockPaylaneAPI(refund_error="processor_declined"), Session())
+    verify(box)
+    result = box.issue_refund("txn_1001", 42.50)
+    assert result["ok"] is False and result["ticket_id"]
+    assert "REFUND FAILED: issue_refund returned processor_declined" in box.api.tickets[0]["summary"]
+    assert box.issue_refund("txn_1001", 42.50)["blocked"] == "issue_handed_off"
+    # The agent reporting the same problem reuses the ticket instead of opening a second one.
+    again = box.escalate_to_human("refund_failed_or_missing", "Refund failed.", ["txn_1001"], 0)
+    assert again["ticket_id"] == result["ticket_id"]

@@ -14,7 +14,6 @@ class Session:
     hold_ticket: str | None = None
     held_txns: dict = field(default_factory=dict)  # txn_id -> ticket_id, for handoffs about one transaction
     refunded_txns: dict = field(default_factory=dict)  # txn_id -> refund_id
-    refund_failed: set = field(default_factory=set)  # never retried
     tickets: list = field(default_factory=list)
     events: list = field(default_factory=list)  # every tool call with the guard's verdict
 

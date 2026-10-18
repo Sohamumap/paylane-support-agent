@@ -4,13 +4,13 @@ from paylane.clock import FIXED_NOW
 from paylane.policy import check_refund, fraud_priority, money
 
 
-def txn(amount=10.0, age=timedelta(days=1), status="settled", kind="card"):
+def txn(amount=10.0, age=timedelta(days=1), status="settled"):
     date = (FIXED_NOW - age).isoformat().replace("+00:00", "Z")
-    return {"amount": amount, "date": date, "status": status, "type": kind}
+    return {"amount": amount, "date": date, "status": status}
 
 
-def decide(t, card="active"):
-    return check_refund(t, card_status=card, now=FIXED_NOW)
+def decide(t, card="active", kind="purchase"):
+    return check_refund(t, kind=kind, card_status=card, now=FIXED_NOW)
 
 
 def test_exactly_75_dollars_is_refundable():
@@ -38,7 +38,11 @@ def test_refunded_is_never_refunded_again():
 
 
 def test_transfers_go_to_a_person():
-    assert decide(txn(kind="transfer")).reason == "transfer"
+    assert decide(txn(), kind="transfer").reason == "transfer"
+
+
+def test_only_clearly_identified_purchases_can_be_refunded_automatically():
+    assert decide(txn(), kind=None).decision == "escalate"
 
 
 def test_frozen_card_holds_an_otherwise_eligible_refund():

@@ -25,16 +25,24 @@ class RefundCheck:
         return {"decision": self.decision, "reason": self.reason, "note": self.note}
 
 
-def check_refund(txn: dict, *, card_status: str, now: datetime) -> RefundCheck:
-    """Can the assistant refund this transaction on its own? The order matters: the first rule that applies wins."""
+def check_refund(txn: dict, *, kind: str | None, card_status: str, now: datetime) -> RefundCheck:
+    """Can the assistant refund this transaction on its own? The order matters: the first rule that applies wins.
+
+    kind comes from the test data's label (data.transaction_kind), not from the API. Only clearly identified
+    purchases are eligible for an automatic refund.
+    """
     amount = money(txn["amount"])
     age = now - parse_utc(txn["date"])
     if card_status == "frozen":
         return RefundCheck("escalate", "card_frozen",
                            "The card is frozen, so refunds wait for the person who reviews the freeze.")
-    if txn.get("type") == "transfer":
+    if kind == "transfer":
         return RefundCheck("escalate", "transfer",
-                           "This is money sent to another person, not a card purchase. A person has to review reversals.")
+                           "Money sent to another person. Paylane has no way to reverse a transfer here. Hand the "
+                           "request to a person, and don't say or suggest that the money can be pulled back.")
+    if kind != "purchase":
+        return RefundCheck("escalate", "not_a_known_purchase",
+                           "This isn't clearly a purchase, so it isn't eligible for an automatic refund.")
     if txn["status"] == "refunded":
         return RefundCheck("no_refund", "already_refunded", "This transaction has already been refunded.")
     if txn["status"] == "pending":

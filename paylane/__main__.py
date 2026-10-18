@@ -60,7 +60,7 @@ def run_eval(args):
     from evals.runner import load_conversations, run_suite
 
     only = set(args.only.split(",")) if args.only else None
-    specs = load_conversations(only)
+    specs = load_conversations(only, extra=args.extra)
     print(f"Running {len(specs)} conversation(s) x {args.repeat}...")
     out, _records, summary = run_suite(specs, repeat=args.repeat, workers=args.workers, label=args.label,
                                        model=args.model, effort=args.effort)
@@ -79,6 +79,8 @@ def main(argv=None):
     evaluate.add_argument("--repeat", type=int, default=1, help="run each conversation N times")
     evaluate.add_argument("--workers", type=int, default=4, help="conversations run in parallel")
     evaluate.add_argument("--label", default="run", help="suffix for the transcripts folder")
+    evaluate.add_argument("--extra", action="store_true",
+                          help="run the failure-injection conversations (refund timeout, refund declined) instead")
     for p in (web, chat, evaluate):
         p.add_argument("--model", help="default: claude-opus-5-5, or PAYLANE_MODEL")
         p.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"],

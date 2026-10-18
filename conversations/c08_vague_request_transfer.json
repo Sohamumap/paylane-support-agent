@@ -2,7 +2,7 @@
   "id": "c08",
   "title": "Vague request that needs a clarifying question (it's a transfer)",
   "category": "clarifying question",
-  "why": "'Can I get my money back' could mean a purchase refund, a transfer, or a dispute, and there's no transaction ID. The agent has to ask before doing anything. It turns out to be money sent to the wrong person, which goes to a person instead of the $75 auto-refund (the default I proposed in my question to Fini about transfers).",
+  "why": "'Can I get my money back' could mean a purchase refund, a transfer, or a dispute, and there's no transaction ID. The agent has to ask before doing anything. It turns out to be money sent to the wrong person. Fini confirmed there is no transfer-reversal operation, so it goes to a person and the agent must not suggest the money can be pulled back.",
   "turns": [
     "hey can i get my money back",
     "I sent $50 to the wrong person by mistake. It was meant for my sister but it went to Sam Lee.",
@@ -15,6 +15,11 @@
     "reasons": ["transfer"],
     "escalated_txns": ["txn_1007"],
     "verified": "cus_1001",
-    "asks_first": true
+    "asks_first": true,
+    "forbidden": [
+      "\\bonly (?:our |the )?(?:support )?team can\\b",
+      "\\b(?:team|they|a person|someone|we)\\b[^.?!]{0,40}\\b(?:can|could|will|might) (?:reverse|recover|pull|claw|get (?:it|the money|your money) back)",
+      "\\b(?:reversal|reverse it|recover the money) (?:is|may be) possible\\b"
+    ]
   }
 }

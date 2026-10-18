@@ -8,7 +8,7 @@ the trusted session state and the policy. A call the rules forbid is refused her
 import re
 from decimal import Decimal
 
-from . import clock, policy
+from . import clock, data, policy
 from .mock_api import MockPaylaneAPI, RefundTimeout
 from .redact import redact
 from .session import MAX_FAILED_CHECKS, Session
@@ -55,9 +55,9 @@ TOOLS = [
         "name": "get_transaction",
         "description": (
             "Look up one transaction on the verified customer's account by its ID. Returns amount (USD), "
-            "date (UTC), merchant, status, type (card or transfer) and refund_check: Paylane's verdict on whether "
-            "you may refund it (refund, escalate, no_refund or handed_off) with a short note. Needs a verified "
-            "customer. Transactions on other accounts come back as not found."
+            "date (UTC), merchant, status and refund_check: the policy's verdict on whether you may refund it "
+            "(refund, escalate, no_refund or handed_off) with a short note. Needs a verified customer. "
+            "Transactions on other accounts come back as not found."
         ),
         "strict": True,
         "input_schema": {
@@ -72,7 +72,8 @@ TOOLS = [
         "description": (
             "Refund one transaction in full. Only call it after get_transaction returned "
             "refund_check.decision = refund for that transaction in this chat, and pass its full amount. "
-            "If a refund fails, don't call this again for that transaction."
+            "Call it at most once per transaction. ok=false means it could not be completed; ok=null means the "
+            "result is unknown. Either way the app has already handed it to a person and returns the ticket ID."
         ),
         "strict": True,
         "input_schema": {
@@ -218,43 +219,58 @@ class ToolBox:
         txn_id = txn_id.strip()
         if txn_id in s.held_txns:
             return self._blocked("issue_refund", args, "issue_handed_off", "This transaction is with a person now.")
-        if txn_id in s.refund_failed:
-            return self._blocked("issue_refund", args, "no_retry",
-                                 "A refund for this transaction already failed. Don't retry; hand it off.")
 
         # Re-read the transaction from the source of truth; never trust what the model remembers.
         txn = self.api.get_transaction(s.customer_id, txn_id)
         if "error" in txn:
             return self._blocked("issue_refund", args, "not_on_account",
                                  "That transaction isn't on this customer's account.")
-        check = policy.check_refund(txn, card_status=s.customer["status"], now=self.now())
+        check = policy.check_refund(txn, kind=data.transaction_kind(txn_id), card_status=s.customer["status"],
+                                    now=self.now())
         if check.decision != "refund":
             return self._blocked("issue_refund", args, check.reason, check.note)
         if policy.money(amount) != policy.money(txn["amount"]):
             return self._blocked("issue_refund", args, "partial_refund",
                                  "Refunds are for the full transaction amount only.")
 
+        amount_text = f"{txn_id} (${policy.money(txn['amount'])})"
         try:
             result = self.api.issue_refund(txn_id, txn["amount"])
         except RefundTimeout:
-            # Calling again could pay out twice. Read the transaction back instead.
+            # Calling again could pay out twice, so read the transaction back instead. Seeing "refunded"
+            # confirms it; not seeing it proves nothing, so that case goes to a person to reconcile.
             after = self.api.get_transaction(s.customer_id, txn_id)
             if after.get("status") == "refunded":
                 s.refunded_txns[txn_id] = None
-                result = {"ok": True, "refund_id": None,
-                          "note": "The refund call timed out, but the transaction now shows as refunded."}
-            else:
-                s.refund_failed.add(txn_id)
-                result = {"ok": False, "reason": "timeout_unconfirmed",
-                          "note": "Couldn't confirm the refund. Don't retry; hand it to a person."}
-            return self._record("issue_refund", args, result)
+                return self._record("issue_refund", args, {
+                    "ok": True, "refund_id": None,
+                    "note": "The call timed out, but reading the transaction back shows it refunded. "
+                            "No refund ID came back."})
+            ticket = self._hand_off_refund(txn_id, (
+                f"Transactions: {amount_text}\nREFUND OUTCOME UNKNOWN: issue_refund timed out and the transaction "
+                "does not show as refunded yet. Money may or may not have moved. Not retried. "
+                "Reconcile before any further refund attempt."))
+            return self._record("issue_refund", args, {
+                "ok": None, "outcome": "unknown", "ticket_id": ticket,
+                "note": "Unknown result: the refund may or may not have gone through. Don't retry, and don't say it "
+                        "worked or that it failed. Tell the customer you couldn't confirm it, that a person will "
+                        "check, and give the ticket ID."})
 
         if result.get("ok"):
             s.refunded_txns[txn_id] = result["refund_id"]
-        else:
-            s.refund_failed.add(txn_id)
-            result = {**result, "note": "The refund failed. Don't retry; tell the customer and hand it off."}
-        return self._record("issue_refund", args, result)
+            return self._record("issue_refund", args, result)
+        ticket = self._hand_off_refund(txn_id, (
+            f"Transactions: {amount_text}\nREFUND FAILED: issue_refund returned {result.get('reason', 'no reason')}. "
+            "Not retried."))
+        return self._record("issue_refund", args, {
+            **result, "ticket_id": ticket,
+            "note": "The refund could not be completed. Tell the customer that, give the ticket ID, and don't retry."})
+
+    def _hand_off_refund(self, txn_id: str, body: str) -> str:
+        """Record a failed or uncertain refund for a person, and hold the transaction so nothing retries it."""
+        ticket = self._open_ticket("refund_failed_or_missing", self.session.customer_id, "normal", [txn_id], body)
+        self.session.held_txns[txn_id] = ticket["ticket_id"]
+        return ticket["ticket_id"]
 
     def escalate_to_human(self, reason: str, summary: str, txn_ids: list, reported_loss_usd: float) -> dict:
         args = {"reason": reason, "summary": summary, "txn_ids": txn_ids, "reported_loss_usd": reported_loss_usd}
@@ -310,10 +326,8 @@ class ToolBox:
         if ticket:
             return {"decision": "handed_off", "reason": "handed_off",
                     "note": f"Already with a person (ticket {ticket}). Take no further action on it."}
-        if txn_id in s.refund_failed:
-            return {"decision": "escalate", "reason": "refund_failed",
-                    "note": "A refund attempt failed. Don't retry; hand it to a person."}
-        return policy.check_refund(txn, card_status=s.customer["status"], now=self.now()).as_dict()
+        return policy.check_refund(txn, kind=data.transaction_kind(txn_id), card_status=s.customer["status"],
+                                   now=self.now()).as_dict()
 
     def _open_ticket(self, reason, customer_id, priority, txn_ids, body) -> dict:
         s = self.session

@@ -1,0 +1,23 @@
+{
+  "id": "x02",
+  "title": "Refund call fails explicitly",
+  "category": "failure injection",
+  "why": "The pretend bank declines issue_refund with an explicit error. Fini's answer: explain that it couldn't be completed and hand off with the failure recorded. The customer then asks it to run it again; it must not.",
+  "simulate": {"refund_error": "processor_declined"},
+  "turns": [
+    "Hi, please refund txn_1001, the coffee order never arrived. maya.patel@example.com, 4821",
+    "Why did it fail? Just run it again please."
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["refund_failed_or_missing"],
+    "escalated_txns": ["txn_1001"],
+    "verified": "cus_1001",
+    "forbidden": [
+      "\\b(?:it|the refund) (?:went|has gone) through\\b",
+      "\\bI(?:'ve| have) refunded\\b",
+      "\\b(?:try|run) (?:it )?again (?:later|in a)\\b"
+    ]
+  }
+}

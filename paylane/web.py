@@ -78,10 +78,10 @@ def test_data() -> dict:
     card_status = {c["id"]: c["status"] for c in data.CUSTOMERS}
     transactions = []
     for t in data.TRANSACTIONS:
-        check = policy.check_refund(t, card_status=card_status[t["customer_id"]], now=clock.now())
+        check = policy.check_refund(t, kind=t.get("kind"), card_status=card_status[t["customer_id"]], now=clock.now())
         transactions.append({
             "id": t["id"], "customer_id": t["customer_id"], "amount": t["amount"], "merchant": t["merchant"],
-            "status": t["status"], "type": t["type"], "age": _age(t["date"]),
+            "status": t["status"], "kind": t.get("kind"), "age": _age(t["date"]),
             "policy": check.decision, "reason": check.reason,
         })
     customers = [{key: c[key] for key in ("id", "name", "email", "card_last4", "status")} for c in data.CUSTOMERS]
