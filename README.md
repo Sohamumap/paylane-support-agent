@@ -22,6 +22,7 @@ cp .env.example .env             # then paste your key after ANTHROPIC_API_KEY=
 | `python -m pytest` | Deterministic tests: policy boundaries, the guard, the checks, and the chat loop with a fake model | No |
 | `python -m paylane eval` | Runs the 12 conversations against the live model, saves transcripts and scores them (about $0.50, under 2 minutes) | Yes |
 | `python -m paylane eval --repeat 3` | The same, three times per conversation | Yes |
+| `python -m paylane eval --extra` | Two failure tests: the refund call times out, or is declined | Yes |
 | `python -m paylane rescore transcripts/<run>` | Re-grades a saved run with the current checks | No |
 | `python -m paylane web` | Chat with the agent in your browser at http://127.0.0.1:8765, with a side panel showing every tool call, what the guard blocked, refunds and tickets | Yes |
 | `python -m paylane chat` | The same in the terminal; every tool call is printed | Yes |
@@ -30,9 +31,9 @@ Defaults: `claude-opus-5-5` at effort `medium`. Override with `--model` and `--e
 
 ## Results
 
-Final run, Claude Opus 5.5 at medium effort, each conversation three times: **12/12 conversations passed every check in all three runs (252/252 checks)**. [Summary](transcripts/20261016-2016-final2/summary.md), with every transcript in the same folder.
+Final run, Claude Opus 5.5 at medium effort, each conversation three times: **12/12 conversations passed every check in all three runs (252/252 checks)**. [Summary](transcripts/20261018-1016-final3/summary.md), with every transcript in the same folder. Two extra failure tests (a refund call that times out, and one that's declined) passed all three runs too.
 
-It took several rounds to get there. The first run scored 9/12, and a repeated run caught a failure that a single clean run had hidden. [REPORT.md](REPORT.md#results) has the history and every failure I found.
+It took several rounds to get there. The first run scored 9/12, a repeated run caught a failure that a single clean run had hidden, and Fini's answers to my two questions led to the last changes. [REPORT.md](REPORT.md#results) has the history and every failure I found.
 
 ## Layout
 

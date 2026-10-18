@@ -31,9 +31,9 @@ The money rules are built into the software as well as the assistant's instructi
 5. **Looking up recent transactions.** Customers rarely know a transaction ID, and the assistant has to ask for one. A read-only list of the customer's own recent transactions would fix that.
 6. **Four decisions to confirm.** I made a cautious choice on each; tell me if you want it changed:
    - A refund request on a frozen card waits for the person reviewing the freeze.
-   - Money sent to another person by mistake goes to your team, never through the $75 automatic refund.
+   - Money sent to another person by mistake goes to your team, never through the $75 automatic refund, and the assistant never suggests it can be pulled back. Your system doesn't yet tell it whether a payment was a purchase or a transfer, so I'll need that before launch.
    - When a customer reports a charge they didn't make, only the charges they name are put on hold. Other refunds in the same chat can still go through.
-   - If a refund fails, the assistant never tries again on its own, so a customer can't be paid twice. Is your refund system safe against double payments if it is called twice?
+   - The assistant tries a refund once, never twice. If your refund system says no, it tells the customer and passes the case to your team. If your system doesn't answer, it tells the customer it couldn't confirm the refund and flags it for your team to check whether money moved. Is your refund system safe against paying twice if it is ever called twice?
 7. **Real conversations.** 50 to 100 past chats with personal details removed, so I can test the assistant on how your customers actually write before it goes live.
 
 For the first week, I'd suggest your team approves each refund before it's paid. Once you're happy with what you see, we switch on automatic refunds.
