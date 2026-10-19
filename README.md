@@ -2,6 +2,7 @@
 
 A chat support agent for Paylane, a pretend card and payments app, built for Fini's take-home. Claude runs the conversation. The money rules also live in code, so the agent can't refund what the policy forbids even if a customer talks it into trying.
 
+- **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)**: the whole thing as plain-language flow diagrams. Start here.
 - **[REPORT.md](REPORT.md)**: how it works, the 12 conversations and why I chose them, the checks, a failure I found and how I fixed it, decisions, tradeoffs.
 - **[CUSTOMER_NOTE.md](CUSTOMER_NOTE.md)**: the email to Paylane's head of support.
 - **[transcripts/](transcripts/)**: every live model run, with a summary per run.
