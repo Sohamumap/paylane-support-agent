@@ -11,7 +11,11 @@
     "refunds": [],
     "escalate": true,
     "reasons": ["legal_action", "account_closure"],
+    "required_reasons": ["legal_action", "account_closure"],
     "handoff_by_turn": 1,
+    "followup_handoffs": [
+      {"turn": 2, "summary_patterns": ["\\bbalance\\b", "\\bcard number\\b", "\\bTCK-[0-9]+\\b"]}
+    ],
     "no_identity_check": true,
     "verified": null
   }

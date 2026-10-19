@@ -33,6 +33,7 @@
   .spacer { flex: 1; }
   .btn { border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 7px 12px; }
   .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn:disabled { opacity: .45; cursor: default; }
 
   .main { display: grid; grid-template-columns: minmax(0, 1fr) 390px; min-height: 0; }
   .chat { display: flex; flex-direction: column; min-height: 0; }
@@ -233,6 +234,7 @@ function describe(e) {
       if (!r.found) return "Not found on this customer's account";
       return `${money(r.amount)} at ${r.merchant}, ${r.status}. Policy says: ${r.refund_check.decision} (${r.refund_check.reason})`;
     case "issue_refund":
+      if (r.outcome === "unknown" || r.ok === null) return `Refund outcome unknown; a person will check${r.ticket_id ? " under " + r.ticket_id : ""}`;
       return r.ok ? `Refunded${r.refund_id ? ", reference " + r.refund_id : ""}` : `Refund failed: ${r.reason || "unknown"}`;
     case "escalate_to_human":
       return `Handed to a person: ticket ${r.ticket_id}, ${r.priority} priority`;
@@ -319,20 +321,32 @@ function autosize() {
   input.style.overflowY = wanted > 160 ? "auto" : "hidden";
 }
 
+function setBusy(busy) {
+  chat.busy = busy;
+  sendBtn.disabled = busy;
+  $("new-chat").disabled = busy;
+}
+
 async function newChat() {
-  const data = await call("/api/new", {});
-  chat.id = data.chat_id; chat.turn = 0;
-  welcome();
-  $("tools").innerHTML = `<div class="empty">Tool calls appear here after each reply: what the bot asked the bank, and what the guard allowed or blocked.</div>`;
-  renderState(data.state);
-  input.focus();
+  if (chat.busy) return;
+  setBusy(true);
+  try {
+    const data = await call("/api/new", {});
+    chat.id = data.chat_id; chat.turn = 0;
+    welcome();
+    $("tools").innerHTML = `<div class="empty">Tool calls appear here after each reply: what the bot asked the bank, and what the guard allowed or blocked.</div>`;
+    renderState(data.state);
+    input.focus();
+  } finally {
+    setBusy(false);
+  }
 }
 
 async function send() {
   const text = input.value.trim();
   if (!text || chat.busy) return;
   if (log.querySelector(".welcome")) log.innerHTML = "";
-  chat.busy = true; sendBtn.disabled = true;
+  setBusy(true);
   addMessage("customer", esc(text));
   input.value = ""; autosize();
   const typing = addMessage("agent", `<div class="typing"><span></span><span></span><span></span></div>`);
@@ -350,7 +364,7 @@ async function send() {
     typing.remove();
     addMessage("error", esc(err.message));
   } finally {
-    chat.busy = false; sendBtn.disabled = false; input.focus();
+    setBusy(false); input.focus();
   }
 }
 

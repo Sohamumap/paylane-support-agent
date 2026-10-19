@@ -1,15 +1,19 @@
 """Run the scripted conversations against the live model, save transcripts, and score them."""
 
 import json
+import re
 import time
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
+from importlib.metadata import version
 from pathlib import Path
 
 import anthropic
 
 from paylane.agent import SupportAgent
+from paylane.prompt import SYSTEM_PROMPT
 from paylane.mock_api import MockPaylaneAPI
 from paylane.session import Session
 from paylane.tools import ToolBox
@@ -27,7 +31,18 @@ PRICES = {"claude-opus-5-5": (4.00, 20.00, 0.20, 5.00)}
 def load_conversations(only=None, extra=False):
     """The 12 core conversations, or with extra=True the failure-injection ones in conversations/extra."""
     folder = CONVERSATIONS / "extra" if extra else CONVERSATIONS
-    specs = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(folder.glob("*.json"))]
+    specs = []
+    for path in sorted(folder.glob("*.json")):
+        spec = json.loads(path.read_text(encoding="utf-8"))
+        patterns = list(spec["expect"].get("forbidden", []))
+        patterns += [pattern for followup in spec["expect"].get("followup_handoffs", [])
+                     for pattern in followup["summary_patterns"]]
+        for pattern in patterns:
+            # JSON "\b" is a backspace; a regex word boundary must be written "\\b".
+            if any(ord(character) < 32 for character in pattern):
+                raise ValueError(f"{path.name}: control character in regex; use doubled JSON backslashes")
+            re.compile(pattern)
+        specs.append(spec)
     return [s for s in specs if not only or s["id"] in only]
 
 
@@ -60,6 +75,20 @@ def run_conversation(spec, *, client=None, model=None, effort=None) -> dict:
 def run_suite(specs, *, repeat=1, workers=4, label="run", model=None, effort=None, client=None):
     out = TRANSCRIPTS / f"{datetime.now():%Y%m%d-%H%M}-{label}"
     out.mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "started_at_utc": datetime.now(timezone.utc).isoformat(),
+        "model_requested": model,
+        "effort_requested": effort,
+        "repeat": repeat,
+        "anthropic_sdk_version": version("anthropic"),
+        "system_prompt": SYSTEM_PROMPT,
+        "source_sha256": {path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                          for folder in (ROOT / "paylane", ROOT / "evals")
+                          for path in sorted(folder.iterdir()) if path.suffix in {".py", ".md"}},
+        "conversations_sha256": {spec["id"]: hashlib.sha256(
+            json.dumps(spec, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest() for spec in specs},
+    }
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     client = client or anthropic.Anthropic(max_retries=4, timeout=180)
     started = time.monotonic()
 
@@ -81,6 +110,10 @@ def run_suite(specs, *, repeat=1, workers=4, label="run", model=None, effort=Non
     jobs = [(spec, attempt) for spec in specs for attempt in range(1, repeat + 1)]
     with ThreadPoolExecutor(max_workers=workers) as pool:
         records = list(pool.map(job, jobs))
+    manifest["completed_at_utc"] = datetime.now(timezone.utc).isoformat()
+    manifest["actual_models"] = sorted({call["model"] for record in records
+                                       for turn in record.get("turns", []) for call in turn["model_calls"]})
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     summary = render_summary(records, repeat, time.monotonic() - started)
     (out / "summary.md").write_text(summary, encoding="utf-8")
     return out, records, summary

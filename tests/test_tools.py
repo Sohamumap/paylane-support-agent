@@ -141,7 +141,7 @@ def test_fraud_with_no_transactions_named_pauses_the_whole_chat(box):
 
 def test_the_same_issue_twice_reuses_the_ticket(box):
     first = box.escalate_to_human("customer_asked_for_human", "Wants a person.", [], 0)
-    second = box.escalate_to_human("customer_asked_for_human", "Asked again.", [], 0)
+    second = box.escalate_to_human("customer_asked_for_human", "Wants a person.", [], 0)
     assert first["ticket_id"] == second["ticket_id"]
     assert len(box.api.tickets) == 1
 
@@ -189,6 +189,62 @@ def test_explicit_failure_is_handed_off_with_the_reason_and_never_retried():
     assert result["ok"] is False and result["ticket_id"]
     assert "REFUND FAILED: issue_refund returned processor_declined" in box.api.tickets[0]["summary"]
     assert box.issue_refund("txn_1001", 42.50)["blocked"] == "issue_handed_off"
-    # The agent reporting the same problem reuses the ticket instead of opening a second one.
-    again = box.escalate_to_human("refund_failed_or_missing", "Refund failed.", ["txn_1001"], 0)
+    # Repeating the exact recorded information does not open a second ticket.
+    summary = ("Transactions: txn_1001 ($42.50)\n"
+               "REFUND FAILED: issue_refund returned processor_declined. Not retried.")
+    again = box.escalate_to_human("refund_failed_or_missing", summary, ["txn_1001"], 0)
     assert again["ticket_id"] == result["ticket_id"]
+
+
+def test_revised_fraud_loss_creates_a_linked_high_priority_followup(box):
+    verify(box)
+    first = box.escalate_to_human("unauthorized_charge", "Reports fraud.", ["txn_1001"], 100)
+    second = box.escalate_to_human("unauthorized_charge", "Reports fraud.", ["txn_1001"], 600)
+    assert first["priority"] == "normal"
+    assert second["priority"] == "high" and second["ticket_id"] != first["ticket_id"]
+    assert "Reported loss: $600.00" in box.api.tickets[-1]["summary"]
+    assert f"Follow-up to ticket {first['ticket_id']}" in box.api.tickets[-1]["summary"]
+    assert box.issue_refund("txn_1001", 42.50)["blocked"] == "issue_handed_off"
+
+
+def test_new_information_after_a_handoff_reaches_the_person(box):
+    first = box.escalate_to_human("customer_asked_for_human", "Wants a person.", [], 0)
+    second = box.escalate_to_human("customer_asked_for_human", "Also says the transfer recipient is wrong.", [], 0)
+    assert second["ticket_id"] != first["ticket_id"]
+    assert "transfer recipient is wrong" in box.api.tickets[-1]["summary"]
+    assert first["ticket_id"] in box.api.tickets[-1]["summary"]
+    verify(box)
+    assert box.issue_refund("txn_1001", 42.50)["blocked"] == "chat_handed_off"
+
+
+def test_fraud_followup_never_downgrades_existing_high_priority(box):
+    first = box.escalate_to_human("unauthorized_charge", "Reports $600 missing.", [], 600)
+    second = box.escalate_to_human("unauthorized_charge", "Adds that another card may be affected.", [], 0)
+    assert first["priority"] == second["priority"] == "high"
+    assert "Reported loss: $600.00" in box.api.tickets[-1]["summary"]
+
+
+def test_new_details_after_an_automatic_failure_ticket_are_preserved():
+    box = ToolBox(MockPaylaneAPI(refund_error="processor_declined"), Session())
+    verify(box)
+    failed = box.issue_refund("txn_1001", 42.50)
+    followup = box.escalate_to_human("refund_failed_or_missing", "Customer says this also happened yesterday.",
+                                   ["txn_1001"], 0)
+    assert followup["ticket_id"] != failed["ticket_id"]
+    assert failed["ticket_id"] in box.api.tickets[-1]["summary"]
+    assert "also happened yesterday" in box.api.tickets[-1]["summary"]
+    assert box.issue_refund("txn_1001", 42.50)["blocked"] == "issue_handed_off"
+
+
+def test_followup_comparison_metadata_does_not_store_full_card_numbers(box):
+    box.escalate_to_human("other", "Card was 4111 1111 1111 1111.", [], 0)
+    assert "4111" not in str(box.session.tickets)
+
+
+def test_new_refund_facts_are_not_lost_when_the_model_repeats_a_summary(box):
+    verify(box)
+    first = box.escalate_to_human("too_old", "Review txn_1003.", ["txn_1003"], 0)
+    box.issue_refund("txn_1001", 42.50)
+    second = box.escalate_to_human("too_old", "Review txn_1003.", ["txn_1003"], 0)
+    assert second["ticket_id"] != first["ticket_id"]
+    assert "Refunds already issued in this chat: txn_1001 (rf_0001)" in box.api.tickets[-1]["summary"]

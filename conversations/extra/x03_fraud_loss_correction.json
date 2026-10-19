@@ -1,0 +1,19 @@
+{
+  "id": "x03",
+  "title": "Fraud incident loss increases after the first handoff",
+  "category": "handoff correction",
+  "why": "A later correction must reach the person handling the case. Deduplicating by reason and transaction alone used to discard the larger loss and leave the case at normal priority.",
+  "turns": [
+    "I didn't make txn_4002. It's part of an incident where I've lost $100 in total. leo.martins@example.com, 6650. Please pass it to the fraud team.",
+    "Correction to the same incident: I've now found $600 of losses in total. The only transaction ID I have is still txn_4002. Please add that correction to the case."
+  ],
+  "expect": {
+    "refunds": [],
+    "escalate": true,
+    "reasons": ["unauthorized_charge"],
+    "escalated_txns": ["txn_4002"],
+    "priority": "high",
+    "verified": "cus_1004",
+    "max_refund_attempts": 1
+  }
+}

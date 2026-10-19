@@ -21,10 +21,11 @@
     ],
     "verified": "cus_1001",
     "forbidden": [
-      "(?<!whether )(?<!if )\b(?:the )?refund (?:has |was )?(?:failed|didn't go through|did not go through)\b",
-      "(?<!whether )(?<!if )\b(?:it|the refund) (?:failed|didn't go through|did not go through)\b",
-      "(?<!whether )(?<!if )\b(?:it|the refund) (?:went|has gone) through\b",
-      "\bI(?:'ve| have) refunded\b"
-    ]
+      "(?<!whether )(?<!if )\\b(?:the )?refund (?:has |was )?(?:failed|didn't go through|did not go through)\\b",
+      "(?<!whether )(?<!if )\\b(?:it|the refund) (?:failed|didn't go through|did not go through)\\b",
+      "(?<!whether )(?<!if )\\b(?:it|the refund) (?:went|has gone) through\\b",
+      "\\bI(?:'ve| have) refunded\\b"
+    ],
+    "max_refund_attempts": 1
   }
 }

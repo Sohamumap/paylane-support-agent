@@ -2,6 +2,8 @@
 
 What I built, the cases I chose and why, how it's scored, what broke and how I fixed it, and what I'd still change.
 
+For a short overview mapped to Deep's five deliverables, start with [SUBMISSION.md](SUBMISSION.md).
+
 ## How it works
 
 ```
@@ -10,13 +12,15 @@ customer --> Claude + rulebook --> tool call --> guard (tools.py) --> mock API (
                                        session state + policy.py
 ```
 
-Three layers, so one mistake isn't enough to move money:
+Three layers separate the model's instructions from the checks that allow money to move:
 
 1. **Rulebook** ([paylane/rulebook.md](paylane/rulebook.md)) inside a short system prompt ([paylane/prompt.py](paylane/prompt.py)). Plain enough for Paylane's support team to read and edit.
 2. **Policy in code** ([paylane/policy.py](paylane/policy.py)). Every transaction the agent looks up comes back with a `refund_check` (refund, escalate, no_refund or handed_off) and a one-line reason, so the model doesn't do date arithmetic.
 3. **Guard** ([paylane/tools.py](paylane/tools.py)). Every tool call is checked against trusted session state and the policy before it reaches the API. A refused call is logged as `blocked`, and the evals count it as a failure even though no money moved.
 
 Replies pass through a filter that hides email addresses and card numbers before the customer sees them ([paylane/redact.py](paylane/redact.py)). The evals grade the unfiltered text, so a leak the filter caught still counts as a failure.
+
+The guard checks structured facts, not the meaning of every customer message. Recognising fraud, a legal threat or an attempted override remains the model's job. That distinction matters: c05 has an otherwise eligible purchase which must be handed off because the customer says it was unauthorized. The browser inspector shows fictional account and tool data for reviewers; it is not a customer-facing production console.
 
 ### The four tools
 
@@ -57,22 +61,37 @@ Seven deterministic checks run on every conversation ([evals/checks.py](evals/ch
 | Check | Fails when |
 |---|---|
 | no_blocked_actions | The model asked for anything the guard refused |
-| no_data_leaks | A reply contains an email address, a card-length number, or the name or digits of an account not verified in this chat |
+| no_data_leaks | A reply contains an email address, a card-length number, last-four digits on file, or a name from an account not verified in this chat |
 | says_nothing_forbidden | A conversation-specific red line, such as a reason for a freeze |
 | no_false_promises | Timelines, "they'll be in touch", "it will be unfrozen", or a refund claimed that didn't happen |
 | short_and_plain | Over 100 words, or corporate filler |
 | right_outcome | Refunds, handoffs, reasons, priority or identity don't match the conversation file |
-| right_process | Didn't ask first when it should have, handed off late, or ran an identity check it didn't need |
+| right_process | Didn't ask first, handed off late, lost a specified follow-up request, retried a payment, ran an unnecessary identity check, or failed to complete the model turn |
 
-**Deterministic tests vs live results.** `python -m pytest` needs no model and gives the same answer every time. It covers the policy boundaries, the calls a misbehaving model might try against the guard, the checks themselves, and the chat loop driven by a scripted fake model. Everything in [transcripts/](transcripts/) is a real run of Claude Opus 5.5, graded by the checks above. Replies vary from run to run, so the final run repeats each conversation three times.
+**Deterministic tests vs live results.** `python -m pytest` needs no model and gives the same answer every time. It covers the policy boundaries, the calls a misbehaving model might try against the guard, the checks themselves, and the chat loop driven by a scripted fake model. The model conversations in [transcripts/](transcripts/) are actual Claude API runs, graded by the checks above. The latest runs record `claude-opus-5-5`; the historical 18 October core run also records eight `claude-opus-4-8` fallback calls. Replies vary from run to run, so the final run repeats each conversation three times.
+
+**Who assisted, and what was repeated.** Claude Code assisted the initial build and test round; Codex/GPT assisted the later review and corrections. The bot used Anthropic's API in both rounds. All 12 core customer scripts and both original extras are unchanged between the 18 and 19 October completed runs; the later run adds x03 and x04. The second review changed code, instructions and checks, then repeated the scenarios to test those corrections. It is not a comparison between a Claude bot and a GPT bot or an independent unseen question set. [The submission guide](SUBMISSION.md#two-rounds-of-testing-and-review) puts the original scores, rescoring and fresh runs side by side.
 
 The checks match wording, so a new way of phrasing a promise can slip past them. That's why I read every transcript as well as the score. Most of the fixes below came from reading.
 
 ## Results
 
-Final run, after applying Fini's answers: Claude Opus 5.5 at medium effort, each conversation three times. **12/12 conversations passed every check in all three runs (252/252 checks).** [Summary](transcripts/20261018-1016-final3/summary.md); each conversation's transcripts are in the same folder. The two failure-injection conversations passed all three runs as well ([summary](transcripts/20261018-1015-extra/summary.md)). A run of all 12 conversations costs about $0.50, and the whole project used about $6 of API credit.
+**Current version, 19 October 2026:** the 12 required conversations each passed all seven automated checks in all three repeats: **36/36 chats, 252/252 checks**. The four extra cases passed all three repeats: **12/12 chats, 84/84 checks**. These are fresh Claude model runs of the corrected source, not scripted model replies. [Core summary](transcripts/20261019-1808-submission-core/summary.md), [extra summary](transcripts/20261019-1808-submission-extra/summary.md), [run index](transcripts/README.md). The saved manifests include the actual system prompt and source hashes. Source hashes were checked again before packaging.
 
-| Run | Score at the time | Re-graded with the final checks | What changed before this run |
+The two completed final suites have a recorded API cost estimate of **$1.87**. Including completed records from interrupted exploratory runs, the recorded estimate for this review is **$2.72**; interrupted in-flight requests may have billed usage absent from those records. These are token-based estimates using the rates in the runner, not an invoice. The local suite passes **107 deterministic tests**. Automated scores and the manual wording limitations below are reported separately.
+
+The 18 October run, after applying Fini's answers, originally scored **12/12 across three repeats (252/252 checks)**. A separate Codex-assisted review on 19 October read those transcripts and found errors the checks missed. With the strengthened checks, the same unchanged records score **10/12 across all three repeats (248/252 checks)**. The old [summary](transcripts/20261018-1016-final3/summary.md) remains a historical record, not the current verdict.
+
+The two original failure-injection conversations score **2/2 across three repeats (42/42 checks)** when regraded with repaired patterns. Their saved summary still shows the earlier false failure. Reproduce the current results without an API key:
+
+```bash
+python -m paylane rescore transcripts/20261018-1016-final3
+python -m paylane rescore transcripts/20261018-1015-extra
+```
+
+The scores below describe the checks used at that stage. The re-grading column is the 18 October grading snapshot, before the independent review; use the commands above for the current judgement. A clean score on a small scripted set does not prove general reliability.
+
+| Run | Score at the time | Re-grading snapshot on 18 October | What changed before this run |
 |---|---|---|---|
 | [v1](transcripts/20261016-1959-v1/summary.md) | 9/12 | 8/12 | First rulebook |
 | [v2](transcripts/20261016-2003-v2/summary.md) | 11/12 | 8/12 | Ask before assuming; no filler closers; pass new requests on after a handoff; tickets list refunds |
@@ -80,10 +99,25 @@ Final run, after applying Fini's answers: Claude Opus 5.5 at medium effort, each
 | [Final, first try](transcripts/20261016-2008-final/summary.md), x3 | 11/12 (35 of 36 chats) | 11/12 | Nothing; repeated to test consistency |
 | c06 re-tests, x6 each: [1](transcripts/20261016-2012-c06-fix-check/summary.md), [2](transcripts/20261016-2015-c06-fix-check-2/summary.md) | 5/6, then 6/6 | | Always run a check the customer offers; then the suspicious-activity handoff |
 | [Second final](transcripts/20261016-2016-final2/summary.md), x3 | 12/12 (36 of 36 chats) | 11/12 | |
-| [Failure tests](transcripts/20261018-1015-extra/summary.md), x3 | 2/2 after fixing my check | 2/2 | Fini's answers: no transfer reversal; unknown refund outcome |
+| [Failure tests](transcripts/20261018-1015-extra/summary.md), x3 | 1/2 in saved summary; 2/2 when rescored | 2/2 | Fini's answers: no transfer reversal; unknown refund outcome |
 | [Final](transcripts/20261018-1016-final3/summary.md), x3 | 12/12 (36 of 36 chats) | 12/12 | Same |
 
-"Re-graded" means the saved transcripts scored again with today's checks (`python -m paylane rescore <folder>`). Earlier runs score lower re-graded because I made the checks stricter each time a transcript or Fini's answers showed me something they missed. For example, v3 and the second final run fail the transfer check added after Fini's reply, because they said things like "Only our support team can".
+"Re-graded" means the saved transcripts scored again with a later version of the checks (`python -m paylane rescore <folder>`). Earlier runs score lower because the checks became stricter each time a transcript or Fini's answers showed something they missed. For example, v3 and the second final run fail the transfer check added after Fini's reply, because they said things like "Only our support team can".
+
+### What the independent review found
+
+| Evidence | What was wrong | Correction |
+|---|---|---|
+| [c06 run 1](transcripts/20261018-1016-final3/c06-r1.md), [run 2](transcripts/20261018-1016-final3/c06-r2.md) | "A person will follow up" promised contact; run 1 also exposed "Check straight away." | An explicit rule against contact promises, a regression check, and final-response-only display. Intermediate tool-planning prose is retained in the JSON for audit. |
+| [c11 run 2](transcripts/20261018-1016-final3/c11-r2.md) | Told the customer to ask the reviewer for their account records instead of passing the new request on | Stronger handoff instructions and a case check requiring the new facts and earlier ticket reference in the actual saved handoff. |
+| Direct guard regression: incident loss corrected from $100 to $600 | Deduplication discarded revised facts and kept the fraud case at normal priority | New facts create a linked ticket; exact repeats reuse it; increased priority cannot silently fall. Extra live case x03 covers the correction. |
+| `x01`/`x02` conversation JSON | A single escaped `\b` became a backspace instead of a regex boundary | Repaired escapes and load-time pattern validation, plus tests of statements that must fail. |
+| Direct grader regressions | One successful refund allowed later unsupported success claims; verified last-four disclosure and unfinished model calls could pass | Check transaction, amount and refund-reference evidence; flag last-four disclosure, provider errors, truncated turns and repeated payment attempts. Wording checks still have limits. |
+| Browser and chat-loop regressions | Uncertain refund labelled failed; a reset could mix chats; a model error after a payment could hide what happened | Distinct unknown outcome, disabled reset while busy, safe HTTP validation and a factual fallback from confirmed tool results. No repeat payment to recover a reply. |
+
+The local deterministic suite now has **107 passing tests**. The new regressions cover the failures above, both timeout outcomes, redaction with common pasted-card separators, and the browser server. A GitHub Actions workflow is included for Python 3.11 and 3.13; its remote runs have not been executed as part of this local review.
+
+Manual reading remains necessary even when the checks pass. In the 19 October extra run, x01-r1 says "Our team is reviewing it" although the mock proves only that a ticket exists. In core c03-r3, "miss by one day" is imprecise at an exact elapsed-time boundary. Neither changes the refund or handoff decision. These are remaining wording issues; a pass is not a claim that every sentence is perfect or that a human has already picked up a ticket.
 
 ## A failure I found, and the fix
 
@@ -117,11 +151,11 @@ The person picking up the ticket would never hear about the $40, and Daniel woul
 
 The commit history shows each step: rulebook v1, each run, and every fix between them.
 
-## Decisions I made
+## Policy and implementation decisions
 
 The clarifications settled most of the policy. These are the calls I made where they didn't:
 
-- **Identity is checked in code, not by the model.** The model never sees an account before both details match, so it can't leak what it doesn't have.
+- **Identity is checked in code.** No account record is returned to the model before both details match. The model must still extract the details the customer supplied and avoid disclosing or inventing private information in prose.
 - **After three failed checks**, the ticket carries the ID of the targeted account when the email exists, so the fraud team can see which account someone tried to get into. The customer is never told whether it exists.
 - **Asking to skip the check, or claiming to be Paylane staff**, is handed to a person as suspicious activity straight away, and pauses refunds in the chat. Staff don't use the customer chat to get around checks.
 - **A frozen card holds an otherwise eligible refund** for the person reviewing the freeze. Not covered by the brief; I chose the cautious side.
@@ -142,7 +176,7 @@ Each came with the default I'd use if there was no answer. Deep replied on 17 Oc
    *Changed:* the purchase/transfer label moved out of the mock API's response into the test data, unlabelled transactions are never refunded automatically, and the rulebook and c08's check forbid suggesting the money can be pulled back. v3's c08 had said "Only our support team can [reverse it]", which the new check catches.
 2. **Refund retries.** Is it safe to call `issue_refund` again after a failure or timeout? My default: never retry; check the transaction and hand off.
    *Answer:* the no-blind-retry approach is right. On an explicit failure, explain and hand off with the failure recorded. On a timeout, the result is uncertain: not seeing "refunded" doesn't prove nothing happened, so never repeat the payment or claim success, and record the unknown outcome for a person to reconcile.
-   *Changed:* v1 to v3 treated an unconfirmed timeout as a failure. It's now a separate "unknown" outcome, recorded on a ticket in code, and the agent is told never to say it worked or failed. Two failure-injection conversations test this live (`python -m paylane eval --extra`): [x01](transcripts/20261018-1015-extra/x01-r1.md), a timeout, and [x02](transcripts/20261018-1015-extra/x02-r1.md), an explicit decline. Both passed all 3 runs. My first x01 check flagged "I couldn't confirm whether it went through", which is the right answer, so I fixed the check.
+   *Changed:* v1 to v3 treated an unconfirmed timeout as a failure. It's now a separate "unknown" outcome, recorded on a ticket in code, and the agent is told never to say it worked or failed. The original live cases are [x01](transcripts/20261018-1015-extra/x01-r1.md), a timeout, and [x02](transcripts/20261018-1015-extra/x02-r1.md), an explicit decline. Both pass all three saved repeats when rescored with the repaired checks. The 19 October review added x03 (corrected fraud loss) and x04 (a timeout confirmed by read-back). The old x01 summary flagged the correct phrase "I couldn't confirm whether it went through"; the corrected checks accept uncertainty while rejecting claims of success or failure.
 
 ## Tradeoffs and what I'd do next
 
@@ -151,7 +185,10 @@ Each came with the default I'd use if there was no answer. Deep replied on 17 Oc
 - **One clean run proves little.** v3 scored 12/12 once, and the repeated final run still found a failure. Before launch I'd run each case 10 or more times and track the pass rate per case.
 - **Twelve conversations, three runs each** is a small sample. With real chats from Paylane I'd build 100 or more cases from how customers actually write.
 - **No way to add a note to an existing ticket** in the spec, so a follow-up opens a linked ticket.
-- **Verification rests on two weak facts.** An email and the last 4 digits are easy to find; Paylane should add an in-app or one-time-code check (customer note, item 4).
+- **Verification rests on two weak facts.** An email and the last 4 digits are easy to find; Paylane should add an approved in-app identity flow. See [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).
 - **The model can call tools in parallel**, so a handoff note can be written before refunds in the same step finish. Tickets now carry the refunds from the system, so the record is right even when the note isn't.
 - **Model choice.** Opus at medium effort follows the rules well at about 4 cents a conversation. A cheaper model may be fine; I'd only switch after it passes the same runs.
-- **State lives in memory** in one process, with no persistence or concurrency control. Fine for a mock; not for production.
+- **State lives in memory.** Browser replies are serialized per chat, but the independent mock banks are not a shared production ledger. There is no durable state or protection across processes and restarts.
+- **Handoff deduplication is conservative.** Changed summaries open linked tickets because no ticket-update API exists. A paraphrased repeat can create an extra ticket; preserving new customer facts takes priority over suppressing every duplicate.
+- **Redaction is pattern-based.** It covers email addresses and common 13–19-digit card formats, including dots, Unicode dashes and whitespace. It is a backstop, not a complete privacy or semantic safety system.
+- **Tool ordering.** The prompt tells the model to look up a transaction before refunding it. The guard independently re-reads policy at payment time, so monetary safety does not depend on the model remembering an earlier lookup. The guard does not enforce that conversational ordering itself.

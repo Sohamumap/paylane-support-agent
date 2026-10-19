@@ -4,7 +4,7 @@ Plain-language flow diagrams of the Paylane support bot. For the full technical 
 
 ## 1. The pieces
 
-The bot has one brain and three helpers around it.
+The model chooses what to say and which tools to request. Code checks identity, transaction ownership and refund eligibility. Recognising fraud and legal intent still depends on the model, which is why the conversations matter.
 
 ```mermaid
 flowchart LR
@@ -13,7 +13,7 @@ flowchart LR
     G --> K["Pretend bank<br/>fake customers and payments"]
     K --> G
     G --> B
-    B --> F["Safety filter<br/>hides emails and card numbers"]
+    B --> F["Final reply only<br/>filter hides emails and card numbers"]
     F --> C
 ```
 
@@ -89,13 +89,13 @@ flowchart TD
     A -- "Done" --> OK["Tell the customer, with<br/>the refund reference"]
     A -- "Declined" --> NO["Say it couldn't be completed.<br/>Hand to a person"]
     A -- "No answer" --> CHK{"Look the payment up:<br/>shows refunded?"}
-    CHK -- "Yes" --> OK
+    CHK -- "Yes" --> CONF["Confirm refunded status.<br/>Do not invent the missing reference"]
     CHK -- "No" --> UNK["Say we couldn't confirm it.<br/>A person checks if money moved.<br/>Never try again"]
 
     classDef person fill:#fff1dc,stroke:#c77800,color:#5a3600
     classDef money fill:#e3f6e8,stroke:#2b8a3e,color:#14451f
     class NO,UNK person
-    class OK money
+    class OK,CONF money
 ```
 
 Pressing refund twice could pay the customer twice, so the bot never does. When the bank doesn't answer and the payment doesn't show as refunded, that still doesn't prove nothing happened, so a person checks.
@@ -131,9 +131,11 @@ flowchart LR
     READ --> Q{"Any mistake?"}
     Q -- "Yes" --> FIX["Fix the rule or the code,<br/>and add a check so it<br/>can't come back"]
     FIX --> RUN
-    Q -- "No" --> DONE["Final: 12 of 12 chats,<br/>3 times each"]
+    Q -- "No" --> DONE["Record the score<br/>and remaining limits"]
 ```
 
 The 7 checks ask: did the bot try anything the guard blocked, leak a card number or email, say a red-line phrase, promise something it can't, ramble or use filler, get the wrong outcome, or skip a step it should have taken?
 
-On top of the 12 chats: 53 tests that run without the AI and try to trick the guard directly, and 2 tests where the pretend bank breaks on purpose (a refund that times out, and one that's declined).
+The original diagram describes the development loop, not proof that the agent always follows policy. The 18 October perfect score became 10/12 when the 19 October review added checks for mistakes the old grader missed. See [REPORT.md](REPORT.md#results) for current results and the preserved history.
+
+On top of the 12 chats: 107 deterministic tests and four extra model cases covering unknown timeouts, explicit declines, increased fraud loss after handoff and a timeout confirmed by read-back. Detailed real-launch questions are in [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).

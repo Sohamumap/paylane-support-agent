@@ -279,12 +279,6 @@ class ToolBox:
             return self._blocked("escalate_to_human", args, "unknown_reason", "Use one of the listed reasons.")
         txn_ids = sorted({t.strip() for t in txn_ids if t.strip()})
 
-        for ticket in s.tickets:  # the same issue twice gets the same ticket, not a duplicate
-            if ticket["reason"] == reason and ticket["txn_ids"] == txn_ids:
-                return self._record("escalate_to_human", args, {
-                    "ticket_id": ticket["ticket_id"], "priority": ticket["priority"],
-                    "note": "Already handed off; no new ticket."})
-
         amounts = {}
         if s.verified:
             for txn_id in txn_ids:
@@ -292,12 +286,32 @@ class ToolBox:
                 if "error" not in txn:
                     amounts[txn_id] = policy.money(txn["amount"])
 
-        priority, extra = "normal", []
+        related = [ticket for ticket in s.tickets
+                   if ticket["reason"] == reason and ticket["txn_ids"] == txn_ids]
+        # Compare the actual request, not the generated ticket header. Redact before storing this
+        # comparison value too: full card numbers do not belong in any part of a ticket.
+        safe_summary, _ = redact(summary, emails=False)
+        request_summary = " ".join(safe_summary.split()).casefold()
+        priority, extra, loss = "normal", [], Decimal("0.00")
         if reason == "unauthorized_charge":
             # High priority goes by the total reported loss: the customer's figure or the charges named, whichever is larger.
             loss = max(sum(amounts.values(), Decimal("0.00")), policy.money(reported_loss_usd or 0))
+            # A follow-up must not silently downgrade an existing high-priority fraud case.
+            loss = max([loss, *(policy.money(t.get("reported_loss_usd", 0)) for t in related)])
             priority = policy.fraud_priority(loss)
             extra.append(f"Reported loss: ${loss}")
+        if related:
+            previous = related[-1]
+            # Reuse only an unchanged request; new details or a larger loss need to reach the
+            # person as well. The mock API has no update endpoint, so changed notes are linked.
+            unchanged = (previous.get("request_summary") == request_summary
+                         and previous["customer_id"] == s.customer_id
+                         and previous.get("refunds_at_handoff", {}) == s.refunded_txns)
+            if unchanged and loss <= policy.money(previous.get("reported_loss_usd", 0)):
+                return self._record("escalate_to_human", args, {
+                    "ticket_id": previous["ticket_id"], "priority": previous["priority"],
+                    "note": "Already handed off; no new ticket."})
+            extra.append("Follow-up to ticket " + previous["ticket_id"] + ": updated customer information.")
         txn_text = ", ".join(f"{t} (${amounts[t]})" if t in amounts else t for t in txn_ids) or "none given"
         if s.refunded_txns:
             # Facts from the system, so the note can't misstate what already happened in the chat.
@@ -306,6 +320,8 @@ class ToolBox:
         body = "\n".join([f"Transactions: {txn_text}", *extra, f"Assistant's note: {summary}"])
 
         ticket = self._open_ticket(reason, s.customer_id, priority, txn_ids, body)
+        ticket["request_summary"] = request_summary
+        ticket["reported_loss_usd"] = str(loss)
         if reason in CHAT_WIDE_REASONS or (reason == "unauthorized_charge" and not txn_ids):
             # Fraud with no transactions named can't be scoped, so it pauses everything.
             if not s.account_hold:
@@ -334,9 +350,12 @@ class ToolBox:
         check = f"passed ({s.customer_id})" if s.verified else "not passed"
         text = f"Priority: {priority.upper()} | Reason: {reason} | Identity check: {check}\n{body}"
         text, _ = redact(text, emails=False)  # tickets are internal, but card numbers never belong in them
+        safe_body, _ = redact(body, emails=False)
         result = self.api.escalate_to_human(customer_id, text)
         ticket = {"ticket_id": result["ticket_id"], "reason": reason, "priority": priority,
-                  "txn_ids": txn_ids, "customer_id": customer_id, "summary": text}
+                  "txn_ids": txn_ids, "customer_id": customer_id, "summary": text,
+                  "request_summary": " ".join(safe_body.split()).casefold(), "reported_loss_usd": "0.00",
+                  "refunds_at_handoff": dict(s.refunded_txns)}
         s.tickets.append(ticket)
         return ticket
 

@@ -1,0 +1,41 @@
+{
+  "started_at_utc": "2026-10-19T12:34:55.182672+00:00",
+  "model_requested": null,
+  "effort_requested": null,
+  "repeat": 3,
+  "anthropic_sdk_version": "1.15.0",
+  "source_sha256": {
+    "paylane/__init__.py": "b83ddd0354461d31fb5eb88bf78e534784e179a11f70270392a586ba32e73bfb",
+    "paylane/__main__.py": "d044b40e7ecd7c4bd17f7e2f6278a934b903f92a389e31aab1ce891ecdbbc1db",
+    "paylane/agent.py": "deb7bc00da76242b1a326f4341067d6de21f2606b344c132962238153a3cbc7a",
+    "paylane/clock.py": "4f2f89a90410d7eb23aac06d5a4fdc82bd6894a764335f4bac883a79a28a0ccb",
+    "paylane/data.py": "e44fb9f7e6c9877c00d21d0056c667318fa7a4f24ae88d68d7e5ae8e737a7e98",
+    "paylane/mock_api.py": "9111a1568e79cc271103c9235401c1f997eec91dba89a3382c1f550c86c1a3b7",
+    "paylane/policy.py": "69d9b6926e00e4936d6649ad2d4260af8c6791194eb2bd3307174e88a09531f0",
+    "paylane/prompt.py": "945d22d16d2fd396ecffeb5536e5b0d7796500c466f20f830c10b41feef01252",
+    "paylane/redact.py": "4e9fa00e615c66fcb4f3b8d402af4d21f9ad8db97d5636780d14b63bb4c1a9a5",
+    "paylane/rulebook.md": "a075dd372f11f14408bbf8cf3f4dce6c8db0e5787a241e09c7a948f947c1c875",
+    "paylane/session.py": "55b101ffcecbbc9e4b88fbee68fb26af819aaecef592e6563a5638668dd5cc10",
+    "paylane/tools.py": "3011cf8b4609cfdfc9ddd1010b4c8df05d7725f0e988ae4d10b13670909477b0",
+    "paylane/web.py": "8c3d5cbdd241f035959849542291d8694ff1ab515917e4c5fe60f39596f209b6",
+    "evals/__init__.py": "613370523dba82a615003ff2a993a6a2076a101f695829058abb542aac668d3e",
+    "evals/checks.py": "aefc1623757d2e9fdfe13d0e762c6a5cd17d2efa4b60e89302402820084b1e76",
+    "evals/runner.py": "525fcfc99ff2ec124ac3e5e4a26368bdf2623f1908f710b33eb91408899a7e17"
+  },
+  "conversations_sha256": {
+    "c01": "50d9d43715cdeda81008ab514da4998ca677752e876960ccc9b15cd8c5abf120",
+    "c02": "9851dfd6d09a82fecf42509bbc3e902182f4aceea3c150b573b8dd1098a5765f",
+    "c03": "566bc5b6ee7f17963d825915f7b5136f0c11d7049c7cc3a736bf5a63325d63e3",
+    "c04": "b0b4d74d9dfcf5419bb2fb1ac5b3cc7a50c030cfbeaec7c8a4334a578464d215",
+    "c05": "17a6ae19aee3fe6d0d0aa1a9c6f2367f72c3dc644ddc1d4627d2056eba7a0f4c",
+    "c06": "97e4b3350a4875f22a7b0d2fcc987635e836f226551961f0dff6ff2ca7821b73",
+    "c07": "00e8b95ce995ecc3316c3253d339393ca133fc1a5e6322128d61dfc758ed75b7",
+    "c08": "63d2230aaf41740ea2d8b40b179cbba8c9da2a4b540c2ce4da0ee3a71ef01e66",
+    "c09": "c2252655e3cd34f526a21fb49168db0a098bfd97c594a1503375a11954f5aab7",
+    "c10": "d378f5f2099a3a0bebcc7de2d8d95997f9641a07af23e6a79aced03ae1a487c0",
+    "c11": "abedb16e67c482b44f8448a6faa833624ae27d1a960f641bd998a313c1cb3951",
+    "c12": "ad03ea048290d3529a378a949624aaf79507ccb953d59dcbb892e24b62665c3f"
+  },
+  "status": "interrupted",
+  "note": "Incomplete exploratory suite; excluded from final scores."
+}

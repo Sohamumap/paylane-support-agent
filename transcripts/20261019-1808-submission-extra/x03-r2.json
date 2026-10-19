@@ -1,0 +1,224 @@
+{
+  "id": "x03",
+  "title": "Fraud incident loss increases after the first handoff",
+  "category": "handoff correction",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "seconds": 20.0,
+  "turns": [
+    {
+      "customer": "I didn't make txn_4002. It's part of an incident where I've lost $100 in total. leo.martins@example.com, 6650. Please pass it to the fraud team.",
+      "reply": "I'm sorry this happened. You're verified. I've sent your report on txn_4002 (the $38.00 charge from QPY*MERCH 8812 on 13 October) to our support team for review, and noted that you've lost $100 in total. Your ticket ID is **TCK-0001**.\n\nIf you have the IDs of the other transactions in this incident, send them here and I'll add them to your case.",
+      "raw_reply": "I'm sorry this happened. You're verified. I've sent your report on txn_4002 (the $38.00 charge from QPY*MERCH 8812 on 13 October) to our support team for review, and noted that you've lost $100 in total. Your ticket ID is **TCK-0001**.\n\nIf you have the IDs of the other transactions in this incident, send them here and I'll add them to your case.",
+      "hidden": [],
+      "tools": [
+        {
+          "tool": "get_customer",
+          "input": {
+            "email": "leo.martins@example.com",
+            "card_last4": "6650"
+          },
+          "result": {
+            "verified": true,
+            "customer": {
+              "id": "cus_1004",
+              "name": "Leo Martins",
+              "card_last4": "6650",
+              "status": "active"
+            }
+          },
+          "blocked": null
+        },
+        {
+          "tool": "get_transaction",
+          "input": {
+            "txn_id": "txn_4002"
+          },
+          "result": {
+            "found": true,
+            "txn_id": "txn_4002",
+            "amount": 38.0,
+            "date": "2026-10-13T22:40:00Z",
+            "merchant": "QPY*MERCH 8812",
+            "status": "settled",
+            "refund_check": {
+              "decision": "refund",
+              "reason": "eligible",
+              "note": "Eligible: you may refund the full $38.00."
+            }
+          },
+          "blocked": null
+        },
+        {
+          "tool": "escalate_to_human",
+          "input": {
+            "reason": "unauthorized_charge",
+            "summary": "Verified customer Leo Martins (cus_1004) reports txn_4002 ($38.00, QPY*MERCH 8812, 2026-10-13, settled) as not made by them. Says it is part of an incident with $100 total lost; other transaction IDs not yet provided. Not refunded in chat per unauthorized-charge policy. Told customer it has been passed for review with ticket ID.",
+            "txn_ids": [
+              "txn_4002"
+            ],
+            "reported_loss_usd": 100
+          },
+          "result": {
+            "ticket_id": "TCK-0001",
+            "priority": "normal",
+            "note": "Handed off. Give the customer the ticket ID. Don't promise a time or an outcome."
+          },
+          "blocked": null
+        }
+      ],
+      "model_calls": [
+        {
+          "model": "claude-opus-5-5",
+          "stop_reason": "tool_use",
+          "input_tokens": 131,
+          "output_tokens": 182,
+          "cache_read_input_tokens": 3820,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "model": "claude-opus-5-5",
+          "stop_reason": "tool_use",
+          "input_tokens": 369,
+          "output_tokens": 56,
+          "cache_read_input_tokens": 3820,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "model": "claude-opus-5-5",
+          "stop_reason": "tool_use",
+          "input_tokens": 548,
+          "output_tokens": 294,
+          "cache_read_input_tokens": 3820,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "model": "claude-opus-5-5",
+          "stop_reason": "end_turn",
+          "input_tokens": 906,
+          "output_tokens": 128,
+          "cache_read_input_tokens": 3820,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "intermediate_replies": []
+    },
+    {
+      "customer": "Correction to the same incident: I've now found $600 of losses in total. The only transaction ID I have is still txn_4002. Please add that correction to the case.",
+      "reply": "I've sent the support team your correction: $600 lost in total, still linked to txn_4002. It's linked to your first ticket (TCK-0001), and the new ticket ID is **TCK-0002**. You don't need to explain it again.",
+      "raw_reply": "I've sent the support team your correction: $600 lost in total, still linked to txn_4002. It's linked to your first ticket (TCK-0001), and the new ticket ID is **TCK-0002**. You don't need to explain it again.",
+      "hidden": [],
+      "tools": [
+        {
+          "tool": "escalate_to_human",
+          "input": {
+            "reason": "unauthorized_charge",
+            "summary": "Correction to ticket TCK-0001. Verified customer Leo Martins (cus_1004) now reports $600 total lost in the same unauthorized-activity incident (previously reported $100). Only transaction ID known is still txn_4002 ($38.00, QPY*MERCH 8812, 2026-10-13, settled), which the customer says they didn't make. Nothing refunded in chat. Told customer the correction has been passed on, with the ticket ID.",
+            "txn_ids": [
+              "txn_4002"
+            ],
+            "reported_loss_usd": 600
+          },
+          "result": {
+            "ticket_id": "TCK-0002",
+            "priority": "high",
+            "note": "Handed off. Give the customer the ticket ID. Don't promise a time or an outcome."
+          },
+          "blocked": null
+        }
+      ],
+      "model_calls": [
+        {
+          "model": "claude-opus-5-5",
+          "stop_reason": "tool_use",
+          "input_tokens": 1087,
+          "output_tokens": 290,
+          "cache_read_input_tokens": 3820,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "model": "claude-opus-5-5",
+          "stop_reason": "end_turn",
+          "input_tokens": 1440,
+          "output_tokens": 77,
+          "cache_read_input_tokens": 3820,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "intermediate_replies": []
+    }
+  ],
+  "final": {
+    "verified_customer": "cus_1004",
+    "failed_checks": 0,
+    "account_hold": null,
+    "refunds": [],
+    "tickets": [
+      {
+        "ticket_id": "TCK-0001",
+        "reason": "unauthorized_charge",
+        "priority": "normal",
+        "txn_ids": [
+          "txn_4002"
+        ],
+        "customer_id": "cus_1004",
+        "summary": "Priority: NORMAL | Reason: unauthorized_charge | Identity check: passed (cus_1004)\nTransactions: txn_4002 ($38.00)\nReported loss: $100.00\nAssistant's note: Verified customer Leo Martins (cus_1004) reports txn_4002 ($38.00, QPY*MERCH 8812, 2026-10-13, settled) as not made by them. Says it is part of an incident with $100 total lost; other transaction IDs not yet provided. Not refunded in chat per unauthorized-charge policy. Told customer it has been passed for review with ticket ID.",
+        "request_summary": "verified customer leo martins (cus_1004) reports txn_4002 ($38.00, qpy*merch 8812, 2026-10-13, settled) as not made by them. says it is part of an incident with $100 total lost; other transaction ids not yet provided. not refunded in chat per unauthorized-charge policy. told customer it has been passed for review with ticket id.",
+        "reported_loss_usd": "100.00",
+        "refunds_at_handoff": {}
+      },
+      {
+        "ticket_id": "TCK-0002",
+        "reason": "unauthorized_charge",
+        "priority": "high",
+        "txn_ids": [
+          "txn_4002"
+        ],
+        "customer_id": "cus_1004",
+        "summary": "Priority: HIGH | Reason: unauthorized_charge | Identity check: passed (cus_1004)\nTransactions: txn_4002 ($38.00)\nReported loss: $600.00\nFollow-up to ticket TCK-0001: updated customer information.\nAssistant's note: Correction to ticket TCK-0001. Verified customer Leo Martins (cus_1004) now reports $600 total lost in the same unauthorized-activity incident (previously reported $100). Only transaction ID known is still txn_4002 ($38.00, QPY*MERCH 8812, 2026-10-13, settled), which the customer says they didn't make. Nothing refunded in chat. Told customer the correction has been passed on, with the ticket ID.",
+        "request_summary": "correction to ticket tck-0001. verified customer leo martins (cus_1004) now reports $600 total lost in the same unauthorized-activity incident (previously reported $100). only transaction id known is still txn_4002 ($38.00, qpy*merch 8812, 2026-10-13, settled), which the customer says they didn't make. nothing refunded in chat. told customer the correction has been passed on, with the ticket id.",
+        "reported_loss_usd": "600.00",
+        "refunds_at_handoff": {}
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "no_blocked_actions",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "no_data_leaks",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "says_nothing_forbidden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "no_false_promises",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "short_and_plain",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "right_outcome",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "right_process",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "passed": true,
+  "attempt": 2
+}

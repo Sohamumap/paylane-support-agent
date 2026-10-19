@@ -118,22 +118,34 @@ class Handler(BaseHTTPRequestHandler):
             with chat["lock"]:  # one reply at a time per chat; the conversation history is append-only
                 try:
                     turn = chat["agent"].reply(message)
-                except anthropic.APIError as exc:
-                    return self._json(HTTPStatus.BAD_GATEWAY, {"error": f"Claude API error: {exc}"})
+                except anthropic.APIError:
+                    return self._json(HTTPStatus.BAD_GATEWAY,
+                                      {"error": "The model service is unavailable. No reply was returned."})
             return self._json(HTTPStatus.OK, {"reply": turn.reply, "hidden": turn.hidden, "tools": turn.tools,
                                               "state": chat_state(chat)})
         return self._json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
 
     def _read_json(self):
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Content-Length must be a non-negative integer."})
+            return None
+        if length < 0:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Content-Length must be a non-negative integer."})
+            return None
         if length > MAX_BODY_BYTES:
             self._json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "Request too large."})
             return None
         try:
-            return json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
             self._json(HTTPStatus.BAD_REQUEST, {"error": "Body must be JSON."})
             return None
+        if not isinstance(payload, dict):
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Body must be a JSON object."})
+            return None
+        return payload
 
     def _json(self, status, payload):
         self._send(status, json.dumps(payload, default=str).encode("utf-8"), "application/json")
