@@ -57,4 +57,4 @@ transcripts/  live runs: v1, v2, v3 and the final run
 
 ## How this was built
 
-I spent roughly four hours on the initial build. I shaped the verification flow, the scenarios intended to trick the bot, the guardrails and when a person should take over. Claude Code wrote most of the implementation, tests and conversation scripts and helped draft the documents. A later Codex-assisted review challenged the tests, found additional failures and helped make the corrections documented in the report. That review was additional to the initial build time. The agent itself uses Claude through the Anthropic API.
+I spent roughly four hours working with Claude Code on the initial build. My focus was verification, adversarial scenarios, guardrails and when a person should take over. Claude Code generated most of the implementation, tests and documentation. A later Codex-assisted review challenged the checks, found additional failures and helped make corrections; that work was additional to the initial build time. The agent itself uses Claude through the Anthropic API.
